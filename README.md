@@ -1,7 +1,7 @@
 # harness-engineering
 
-> **A pattern (not a framework) for AI-agent pipelines.**
-> Written down after re-implementing the same architecture across six of my own projects.
+> Reference notes for staged automation projects that need validators, state,
+> logging, retries, and reproducible runs.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/v-0.1-orange.svg)]()
@@ -10,11 +10,11 @@
 
 ## 10-second skim
 
-**What this is** — a written-down architecture for AI-agent pipelines: `agents/` do the work, `validators/` catch what humans miss, a single `manifest.json` holds the state of the world, and one CLI with four verbs (`status / doctor / run / audit`) wraps it all.
+**What this is** — an architecture note for staged automation: `agents/` do the work, `validators/` check outputs, `manifest.json` stores run state, and one CLI with four verbs (`status / doctor / run / audit`) wraps it.
 
 **What this isn't** — a Python package. There is nothing to `pip install`. Each project re-implements the pattern in its own repo and language. The transferable artifact is the *architecture*, not a library.
 
-**Who it's for** — anyone whose project has *stages → batch artifacts → cost/correctness gates → re-runnable state*, and who's tired of relitigating "where does the manifest live?" in every new codebase.
+**Who it's for** — projects with ordered stages, batch artifacts, cost or correctness gates, and re-runnable state.
 
 **Caveats up front** — single-author repo, six reference implementations all by the same author, zero external adoption at the time of writing. The pattern earned its shape from shipping bugs (see [Lessons learned](#lessons-learned-the-painful-ones)), but it has not yet been stress-tested by anyone other than me. Take it as one person's notes, not a community standard.
 
@@ -22,7 +22,7 @@ Jump to: [The pattern in one diagram](#tldr--the-pattern-in-one-diagram) · [Why
 
 ---
 
-Most AI-agent projects collapse not because the LLM is bad, but because the *pipeline around the LLM* is undisciplined. Retries, logs, costs, validation, and state recovery each get re-invented (badly) in every new repo, until the project hits a wall and gets rewritten.
+Automation projects often fail around the model rather than inside the model call. Retries, logs, costs, validation, and state recovery get reimplemented differently in each repo, which makes failures harder to inspect and reruns harder to trust.
 
 This repo writes down the pipeline pattern that I re-implemented six times across six different problem domains (cross-platform screen capture / voice dictation / domain investing / educational PDFs / multi-voter LLM decisions / file cleanup) in a single-author setting. It is:
 
@@ -30,7 +30,7 @@ This repo writes down the pipeline pattern that I re-implemented six times acros
 - **Opinionated** — there is exactly one answer the author settled on for "where does the manifest live?", "how do I shell out to a subprocess?", "what's the CLI surface look like?". The point of writing it down is to *stop relitigating these* inside one author's portfolio. Reasonable people can disagree.
 - **Earned in one person's experience** — every rule below was added the day it would have prevented a bug shipping in *my* projects. The lessons section quotes the specific failure that taught each one. Whether the rule generalises beyond a single-author setting is an open question.
 
-If you are building anything that looks like *"some agent generates output, then I want to verify that output, then I want to ship the output somewhere, and the whole loop must be re-runnable"* — this is for you.
+Use it when an automated stage produces an artifact, another step must validate it, and the run needs to be resumed or audited later.
 
 ---
 
@@ -71,13 +71,13 @@ Everything else is a consequence of these three.
 | "Are my API keys configured?" | Run the pipeline and see what fails | `harness doctor` |
 | Onboarding to a 4-month-old harness | Read every file | Read `manifest.json` + `cli.py` |
 
-This is not magic. It's the same code you'd have written anyway, *put in the same place every time so the next codebase looks like the last one.*
+The pattern is deliberately plain. It is the same code a project would need anyway, put in predictable locations so the next codebase is easier to inspect.
 
 ---
 
 ## Why a *pattern* and not a framework
 
-LangChain, CrewAI, LangGraph, AutoGen, Inspect — there are already excellent frameworks for AI-agent pipelines. They give you a `Pipeline` object, a `@stage` decorator, a vendored retry policy, a vendored logger.
+LangChain, CrewAI, LangGraph, AutoGen, Inspect — there are already mature frameworks for model-driven pipelines. They give you a `Pipeline` object, a `@stage` decorator, a vendored retry policy, a vendored logger.
 
 The problem with frameworks-as-the-answer:
 
