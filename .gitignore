@@ -15,5 +15,8 @@ __pycache__/
 *.bak
 README.md.bak
 
+# Archived legacy files (mv'd, not rm'd, preserved for rollback)
+_archive/
+
 # Internal launch / marketing planning docs — never publish
 marketing/
