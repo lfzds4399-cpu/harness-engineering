@@ -1,0 +1,19 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "laurin-local",
+  "description": "Local Laurin Claude Code plugins stored under D:/作品.",
+  "owner": {
+    "name": "Laurin"
+  },
+  "plugins": [
+    {
+      "name": "codex-cc-bridge",
+      "description": "Bridge Claude Code to Codex through handoff files, read-only Codex reviews, and the multi-AI coordination bus.",
+      "author": {
+        "name": "Laurin"
+      },
+      "category": "development",
+      "source": "./plugins/codex-cc-bridge"
+    }
+  ]
+}
