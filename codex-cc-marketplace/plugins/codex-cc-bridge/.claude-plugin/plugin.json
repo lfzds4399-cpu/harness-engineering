@@ -1,0 +1,8 @@
+{
+  "name": "codex-cc-bridge",
+  "version": "1.0.0",
+  "description": "Claude Code to Codex bridge for handoff, read-only review, and multi-AI coordination through D:/作品/_meta-harness/multi_ai.",
+  "author": {
+    "name": "Laurin"
+  }
+}
