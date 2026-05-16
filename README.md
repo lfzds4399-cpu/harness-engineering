@@ -1,13 +1,10 @@
 # harness-engineering
 
 > **A pattern (not a framework) for AI-agent pipelines.**
-> Validated across 6+ open-source projects in production.
+> Written down after re-implementing the same architecture across six of my own projects.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Pattern](https://img.shields.io/badge/type-pattern_doc-blue.svg)]()
 [![Status](https://img.shields.io/badge/v-0.1-orange.svg)]()
-[![Reference impls](https://img.shields.io/badge/reference_impls-6-green.svg)](#reference-implementations)
-[![Install](https://img.shields.io/badge/install-nothing_to_install-lightgrey.svg)]()
 
 ---
 
@@ -19,7 +16,7 @@
 
 **Who it's for** — anyone whose project has *stages → batch artifacts → cost/correctness gates → re-runnable state*, and who's tired of relitigating "where does the manifest live?" in every new codebase.
 
-**Earned, not theorized** — every rule below was added the day it would have prevented a bug shipping. See [Lessons learned](#lessons-learned-the-painful-ones) for the specific failures.
+**Caveats up front** — single-author repo, six reference implementations all by the same author, zero external adoption at the time of writing. The pattern earned its shape from shipping bugs (see [Lessons learned](#lessons-learned-the-painful-ones)), but it has not yet been stress-tested by anyone other than me. Take it as one person's notes, not a community standard.
 
 Jump to: [The pattern in one diagram](#tldr--the-pattern-in-one-diagram) · [Why a pattern not a framework](#why-a-pattern-and-not-a-framework) · [The 7 mandatory features](#the-7-mandatory-features) · [Reference implementations](#reference-implementations)
 
@@ -27,11 +24,11 @@ Jump to: [The pattern in one diagram](#tldr--the-pattern-in-one-diagram) · [Why
 
 Most AI-agent projects collapse not because the LLM is bad, but because the *pipeline around the LLM* is undisciplined. Retries, logs, costs, validation, and state recovery each get re-invented (badly) in every new repo, until the project hits a wall and gets rewritten.
 
-This repo writes down the pipeline pattern that's survived **six rewrites across six different problem domains** (cross-platform screen capture / voice dictation / domain investing / educational PDFs / multi-voter LLM decisions / file cleanup) in a single-author setting. It is:
+This repo writes down the pipeline pattern that I re-implemented six times across six different problem domains (cross-platform screen capture / voice dictation / domain investing / educational PDFs / multi-voter LLM decisions / file cleanup) in a single-author setting. It is:
 
 - **A pattern**, not a library — there's nothing to `pip install`. Every project implements the pattern independently in its own language with its own dependencies.
-- **Opinionated** — there is exactly one correct answer to "where does the manifest live?", "how do I shell out to a subprocess?", "what's the CLI surface look like?". The point of pattern documentation is to *stop relitigating these*.
-- **Earned, not theorized** — every rule below was added the day it would have prevented a bug shipping. The lessons section quotes the specific failure that taught each one.
+- **Opinionated** — there is exactly one answer the author settled on for "where does the manifest live?", "how do I shell out to a subprocess?", "what's the CLI surface look like?". The point of writing it down is to *stop relitigating these* inside one author's portfolio. Reasonable people can disagree.
+- **Earned in one person's experience** — every rule below was added the day it would have prevented a bug shipping in *my* projects. The lessons section quotes the specific failure that taught each one. Whether the rule generalises beyond a single-author setting is an open question.
 
 If you are building anything that looks like *"some agent generates output, then I want to verify that output, then I want to ship the output somewhere, and the whole loop must be re-runnable"* — this is for you.
 
@@ -286,12 +283,12 @@ Three projects shipped CONTRIBUTING.md sections describing functions that didn't
 
 A short list of "if you find yourself doing this, stop":
 
-- ❌ **No validators, ship directly.** You will ship a bug a human eye missed. Asked-and-answered six times.
-- ❌ **Subprocess without `capture_output=True`.** Floods the LLM context. Floods CI logs. Hides errors.
-- ❌ **Reading progress from stdout.** Stdout is the artifact channel. Progress goes to a different channel.
-- ❌ **One file with `if stage == 1: ... elif stage == 2: ...`.** Stages are independent units; one file each, in a `pipelines/` or `stages/` folder.
-- ❌ **A `_lib/` shared across multiple unrelated harnesses.** See L10.
-- ❌ **Editing business logic during a logging / config / structure refactor.** Each commit does one thing. Always.
+- **No validators, ship directly.** You will ship a bug a human eye missed. Asked-and-answered six times.
+- **Subprocess without `capture_output=True`.** Floods the LLM context. Floods CI logs. Hides errors.
+- **Reading progress from stdout.** Stdout is the artifact channel. Progress goes to a different channel.
+- **One file with `if stage == 1: ... elif stage == 2: ...`.** Stages are independent units; one file each, in a `pipelines/` or `stages/` folder.
+- **A `_lib/` shared across multiple unrelated harnesses.** See L10.
+- **Editing business logic during a logging / config / structure refactor.** Each commit does one thing. Always.
 
 ---
 
@@ -322,7 +319,7 @@ That's it. No `_lib/`. No shared base classes across projects. The same 50 lines
 
 ## Status
 
-**v0.1 — pattern documented, 6 reference implementations.** Future versions of this repo are docs-only additions:
+**v0.1 — pattern documented, six reference implementations (all by the author).** Future versions of this repo are docs-only additions:
 
 - **v0.2** — ARCHITECTURE.md long-form deep-dive on each layer
 - **v0.3** — WHEN.md decision tree for "pattern vs library vs script"
@@ -353,18 +350,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-[MIT](LICENSE). Use this pattern, fork it, claim it, internalize it — the goal is propagation, not credit.
-
----
-
-## Sibling projects
-
-Built by [@lfzds4399-cpu](https://github.com/lfzds4399-cpu) — an 18-year-old solo builder, Year 12 student in Australia, validating this pattern across a handful of open-source projects:
-
-| Repo | One line |
-|---|---|
-| [**claude-screen-mcp**](https://github.com/lfzds4399-cpu/claude-screen-mcp) | Cross-platform MCP server letting Claude see your screen — OCR + smart vision-diff |
-| [**voice2ai**](https://github.com/lfzds4399-cpu/voice2ai) | Hands-free push-to-talk dictation for Windows |
-| [**domain-harness**](https://github.com/lfzds4399-cpu/domain-harness) | Automated domain-investing pipeline with hard budget walls |
-| [**ai-council**](https://github.com/lfzds4399-cpu/ai-council) | Multi-voter consensus framework for LLM decisions |
-| [**cleanup-harness**](https://github.com/lfzds4399-cpu/cleanup-harness) | Reversible disk-cleanup pipeline with whitelist gates |
+[MIT](LICENSE). Use this pattern, fork it, internalise it — the goal is for the architecture to spread, not for the repo to collect stars.
