@@ -6,6 +6,22 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Pattern](https://img.shields.io/badge/type-pattern_doc-blue.svg)]()
 [![Status](https://img.shields.io/badge/v-0.1-orange.svg)]()
+[![Reference impls](https://img.shields.io/badge/reference_impls-6-green.svg)](#reference-implementations)
+[![Install](https://img.shields.io/badge/install-nothing_to_install-lightgrey.svg)]()
+
+---
+
+## 10-second skim
+
+**What this is** — a written-down architecture for AI-agent pipelines: `agents/` do the work, `validators/` catch what humans miss, a single `manifest.json` holds the state of the world, and one CLI with four verbs (`status / doctor / run / audit`) wraps it all.
+
+**What this isn't** — a Python package. There is nothing to `pip install`. Each project re-implements the pattern in its own repo and language. The transferable artifact is the *architecture*, not a library.
+
+**Who it's for** — anyone whose project has *stages → batch artifacts → cost/correctness gates → re-runnable state*, and who's tired of relitigating "where does the manifest live?" in every new codebase.
+
+**Earned, not theorized** — every rule below was added the day it would have prevented a bug shipping. See [Lessons learned](#lessons-learned-the-painful-ones) for the specific failures.
+
+Jump to: [The pattern in one diagram](#tldr--the-pattern-in-one-diagram) · [Why a pattern not a framework](#why-a-pattern-and-not-a-framework) · [The 7 mandatory features](#the-7-mandatory-features) · [Reference implementations](#reference-implementations)
 
 ---
 
@@ -44,6 +60,21 @@ Three rules of the pattern:
 3. **One CLI, four verbs** — `status` (read the manifest), `doctor` (check API keys / deps), `run` (execute one or all stages), `audit` (replay validators against existing artifacts).
 
 Everything else is a consequence of these three.
+
+---
+
+## Before vs after (what adopting the pattern actually changes)
+
+| Concern | Before the pattern | After the pattern |
+|---|---|---|
+| "Where did stage 3 fail last night?" | Scroll terminal scrollback, hope it wasn't lost | `harness status` reads `manifest.json` |
+| "Re-run only the failed stages" | Comment-out code, hope the order is right | `harness run --stage 3` (idempotent; stages marked `done` skip) |
+| "How much did I spend on the API this week?" | Open the provider dashboard | Sum of `cost_usd` in the manifest, one CLI call |
+| "Why did the artifact look fine but break on review?" | Re-watch / re-read it yourself | A validator already caught it (or you add one, once, and never miss that class of bug again) |
+| "Are my API keys configured?" | Run the pipeline and see what fails | `harness doctor` |
+| Onboarding to a 4-month-old harness | Read every file | Read `manifest.json` + `cli.py` |
+
+This is not magic. It's the same code you'd have written anyway, *put in the same place every time so the next codebase looks like the last one.*
 
 ---
 
@@ -188,7 +219,7 @@ After each stage, run end-to-end and confirm nothing broke. **Never combine two 
 
 ## Reference implementations
 
-Six projects following this pattern, all open source, all MIT:
+Five public projects following this pattern, all MIT (plus one private):
 
 | Repo | Domain | Stage count | Validators |
 |---|---|---|---|
@@ -196,10 +227,10 @@ Six projects following this pattern, all open source, all MIT:
 | [**voice2ai**](https://github.com/lfzds4399-cpu/voice2ai) | Hands-free push-to-talk dictation (Windows) | Interactive — *uses pattern's logging/config only* | — |
 | [**domain-harness**](https://github.com/lfzds4399-cpu/domain-harness) | Automated domain investing | 6 stages: `discover → value → acquire → list → negotiate → settle` | budget walls, trademark blacklist, dup check, AI Council |
 | [**ai-council**](https://github.com/lfzds4399-cpu/ai-council) | Multi-voter LLM consensus framework | Library — *uses pattern's manifest only* | — |
-| [**methods-harness**](https://github.com/lfzds4399-cpu/methods-harness) | SymPy-verified bilingual math lesson pipeline | 5 stages per chapter | derivative / integral / factor / transform / trig-solve |
-| **cleanup-harness** *(private)* | Reversible disk-cleanup pipeline | 4 stages: `scan → classify → quarantine → confirm` | whitelist enforce, dry-run gate, undo log |
+| [**cleanup-harness**](https://github.com/lfzds4399-cpu/cleanup-harness) | Reversible disk-cleanup pipeline | 4 stages: `scan → classify → quarantine → confirm` | whitelist enforce, dry-run gate, undo log |
+| **methods-harness** *(private)* | SymPy-verified bilingual math lesson pipeline | 5 stages per chapter | derivative / integral / factor / transform / trig-solve |
 
-The three full harnesses (domain / methods / cleanup) use all 7 mandatory features. claude-screen-mcp uses 5 (no pipelines, no batch artifacts — it's a per-call tool server). voice2ai and ai-council adopt only conventions because their shape isn't pipeline-like (see [When NOT to use](#when-to-use-this-pattern-and-when-not-to)).
+The full harnesses (domain / cleanup / methods) use all 7 mandatory features. claude-screen-mcp uses 5 (no pipelines, no batch artifacts — it's a per-call tool server). voice2ai and ai-council adopt only conventions because their shape isn't pipeline-like (see [When NOT to use](#when-to-use-this-pattern-and-when-not-to)).
 
 ---
 
@@ -264,6 +295,31 @@ A short list of "if you find yourself doing this, stop":
 
 ---
 
+## Minimum viable harness (copy this skeleton)
+
+The smallest layout that still earns the name "harness". Paste into a new repo, fill in the bodies, and you're conforming to the pattern:
+
+```
+<project>/
+├── src/<package>/
+│   ├── cli.py             # typer app: status / doctor / run / audit
+│   ├── manifest.py        # load/save data/<artifact>/manifest.json
+│   ├── logging_setup.py   # setup(quiet: bool = False) -> Logger
+│   ├── retry.py           # @retry decorator + cost-track hook
+│   ├── agents/            # one file per external service
+│   ├── validators/        # >= 2 pure functions returning Verdict
+│   └── pipelines/         # one file per stage; orchestrator imports them
+├── configs/<artifact>.yaml
+├── data/<artifact>/manifest.json   # written by the pipeline
+├── logs/pipeline_<ts>.log
+├── tests/
+└── pyproject.toml         # typer + rich + pyyaml + python-dotenv
+```
+
+That's it. No `_lib/`. No shared base classes across projects. The same 50 lines of `logging_setup.py` repeated in every harness is the *point*, not a smell.
+
+---
+
 ## Status
 
 **v0.1 — pattern documented, 6 reference implementations.** Future versions of this repo are docs-only additions:
@@ -311,4 +367,4 @@ Built by [@lfzds4399-cpu](https://github.com/lfzds4399-cpu) — an 18-year-old s
 | [**voice2ai**](https://github.com/lfzds4399-cpu/voice2ai) | Hands-free push-to-talk dictation for Windows |
 | [**domain-harness**](https://github.com/lfzds4399-cpu/domain-harness) | Automated domain-investing pipeline with hard budget walls |
 | [**ai-council**](https://github.com/lfzds4399-cpu/ai-council) | Multi-voter consensus framework for LLM decisions |
-| [**methods-harness**](https://github.com/lfzds4399-cpu/methods-harness) | SymPy-verified bilingual math lesson pipeline |
+| [**cleanup-harness**](https://github.com/lfzds4399-cpu/cleanup-harness) | Reversible disk-cleanup pipeline with whitelist gates |
